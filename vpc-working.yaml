@@ -1,0 +1,129 @@
+# Description of what this change includes
+# Revision number
+# Date
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CloudFormation template to create a VPC named VPC-RONBRO5499 in us-west-2 region 
+  spanning at least 3 Availability Zones.
+
+Parameters:
+  VPCCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR block for the VPC
+
+  SubnetCidrBlocks:
+    Type: CommaDelimitedList
+    Default: 10.0.1.0/24,10.0.2.0/24,10.0.3.0/24
+    Description: List of CIDR blocks for the subnets (must be at least 3)
+
+Resources:
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: VPC-RONBRO5499
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VPC-RONBRO5499-IGW
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: VPC-RONBRO5499-RouteTable
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # Create 3 Subnets in different AZs
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Select [0, !Ref SubnetCidrBlocks]
+      AvailabilityZone: !Select [0, !GetAZs us-west-2]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Subnet1-RONBRO5499
+
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Select [1, !Ref SubnetCidrBlocks]
+      AvailabilityZone: !Select [1, !GetAZs us-west-2]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Subnet2-RONBRO5499
+
+  Subnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Select [2, !Ref SubnetCidrBlocks]
+      AvailabilityZone: !Select [2, !GetAZs us-west-2]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Subnet3-RONBRO5499
+
+  SubnetRouteTableAssoc1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet1
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssoc2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet2
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssoc3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet3
+      RouteTableId: !Ref RouteTable
+
+Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+
+  Subnet1Id:
+    Description: Subnet 1 ID
+    Value: !Ref Subnet1
+
+  Subnet2Id:
+    Description: Subnet 2 ID
+    Value: !Ref Subnet2
+
+  Subnet3Id:
+    Description: Subnet 3 ID
+    Value: !Ref Subnet3
